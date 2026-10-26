@@ -94,15 +94,17 @@ A full package install brings back the NVIDIA App's daily driver-update check. T
 
 - disables the `NvDriverUpdateCheckDaily_*` and `NVIDIA App SelfUpdate_*` scheduled tasks;
 - sets `FvSvc` (FrameView SDK) to Disabled;
-- renames the `NvTelemetry*.dll` files under both `Program Files\NVIDIA Corporation\NvTelemetry` folders to `*.disabled`;
-- sets the telemetry opt-out values `NvControlPanel2\Client\OptInOrOutPreference = 0` and `Global\FTS\EnableRID44231/64640/66610 = 0`.
+- sets the telemetry opt-out values `NvControlPanel2\Client\OptInOrOutPreference = 0` and `Global\FTS\EnableRID44231/64640/66610 = 0`;
+- restores any `NvTelemetry*.dll.disabled` files left by the first version of this script (see the warning below).
 
 It deliberately leaves alone:
-- `NvContainerLocalSystem`, which on this install only hosts the NVIDIA Broadcast plugin;
+- `NvContainerLocalSystem`, which hosts the NVIDIA App backend (and the App's local MCP server);
 - `NVDisplay.ContainerLocalSystem`, which the Control Panel needs;
 - the per-user `NVIDIA Shader Compiler` task.
 
-The NVIDIA App 11.0.9 telemetry plugin reports to `prod.otel.kaizen.nvidia.com` and `events.telemetry.data.nvidia.com`. On my network both were already blocked at DNS (AdGuard Home), and each logged over 2,000 refused attempts before the DLLs were disabled.
+The NVIDIA App 11.0.9 telemetry plugin reports to `prod.otel.kaizen.nvidia.com` and `events.telemetry.data.nvidia.com`. On my network both were already blocked at DNS (AdGuard Home), and each logged over 2,000 refused attempts. Block those two hostnames at DNS; that's the part that actually stops the reports.
+
+> **Don't rename the NvTelemetry DLLs.** The first version of this script renamed them to `*.disabled`, and that breaks the NVIDIA App. `NvContainerLocalSystem` loads a mandatory plugin, `NvLocalizedConfig`, which loads `NvTelemetryAPI64.dll` → `NvTelemetryBridge64.dll` → the `NvTelemetry64.dll` container plugin at runtime. If any of them is missing, the service crash-loops (System log 7031/7023, exit code 14109; `CxNative_LocalSystem.log` shows error 126 / `0x8007007E`) and the App hangs on its loading screen. If you ran the old version, run the current one again: it renames the files back. Then start `NvContainerLocalSystem` (or reboot).
 
 ## Caveats
 

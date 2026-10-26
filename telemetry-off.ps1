@@ -10,9 +10,11 @@ Get-ScheduledTask | ? { $_.TaskName -like 'NvDriverUpdateCheckDaily_*' -or $_.Ta
 Set-Service FvSvc -StartupType Disabled
 Get-Service FvSvc | ft Name,Status,StartType -auto | Out-String
 
-"=== rename NvTelemetry DLLs to .disabled"
-Get-ChildItem 'C:\Program Files\NVIDIA Corporation\NvTelemetry','C:\Program Files (x86)\NVIDIA Corporation\NvTelemetry' -Recurse -File -Filter *.dll |
-    % { Rename-Item $_.FullName "$($_.Name).disabled" -PassThru | select -Expand FullName }
+"=== restore NvTelemetry DLLs renamed to .disabled by an earlier version of this script"
+# Don't disable these: NvContainerLocalSystem's mandatory NvLocalizedConfig plugin loads NvTelemetryAPI64 -> Bridge64 -> NvTelemetry64,
+# and without them the container crash-loops (exit 14109) and the NVIDIA App hangs on load. Block the endpoints at DNS instead.
+Get-ChildItem 'C:\Program Files\NVIDIA Corporation\NvTelemetry','C:\Program Files (x86)\NVIDIA Corporation\NvTelemetry','C:\Program Files\NVIDIA Corporation\NvContainer\plugins\LocalSystem\NvTelemetry' -Recurse -File -Filter *.dll.disabled -ErrorAction SilentlyContinue |
+    % { Rename-Item $_.FullName ($_.Name -replace '\.disabled$') -PassThru | select -Expand FullName }
 
 "=== registry opt-outs"
 $cp = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvControlPanel2\Client'
